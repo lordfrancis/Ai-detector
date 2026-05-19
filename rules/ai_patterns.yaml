@@ -46,3 +46,185 @@
     - "dynamic interplay"
   explanation: "This phrase is commonly seen in generic AI-assisted academic prose and may need closer review."
   reviewer_note: "Check whether the phrase communicates a precise idea or can be replaced with more specific wording."
+
+- id: promotional_001
+  category: Promotional or exaggerated academic language
+  severity: medium
+  weight: 3
+  pattern_type: phrase
+  patterns:
+    - "groundbreaking"
+    - "transformative potential"
+    - "significant advancement"
+    - "remarkable progress"
+  explanation: "Promotional language can overstate academic claims without enough evidence."
+  reviewer_note: "Check whether the wording is proportional to the evidence."
+
+- id: ing_addon_001
+  category: Superficial -ing academic add-ons
+  severity: medium
+  weight: 2
+  pattern_type: phrase
+  patterns:
+    - "highlighting the importance"
+    - "emphasizing the need"
+    - "demonstrating the importance"
+  explanation: "This add-on may append a generic academic claim rather than a specific contribution."
+  reviewer_note: "Check whether the -ing phrase adds evidence or only repeats a broad point."
+
+- id: copula_avoidance_001
+  category: Copula avoidance
+  severity: low
+  weight: 1
+  pattern_type: phrase
+  patterns:
+    - "serves as a"
+    - "acts as a"
+    - "functions as a"
+  explanation: "This wording can replace simpler direct phrasing and may indicate polished generic prose."
+  reviewer_note: "Check whether a clearer direct verb or 'is' construction would be more natural."
+
+- id: hedging_001
+  category: Excessive hedging
+  severity: low
+  weight: 1
+  pattern_type: phrase
+  patterns:
+    - "may suggest"
+    - "could potentially"
+    - "it is possible that"
+    - "appears to indicate"
+  explanation: "Repeated hedging can make claims sound generic or noncommittal."
+  reviewer_note: "Check whether the uncertainty is justified by the evidence."
+
+- id: causal_001
+  category: Overly assertive causal claims
+  severity: high
+  weight: 4
+  pattern_type: phrase
+  patterns:
+    - "directly leads to"
+    - "inevitably results in"
+    - "is the key driver of"
+  explanation: "Strong causal wording may be unsupported in academic prose."
+  reviewer_note: "Check whether the method and evidence support a causal claim."
+
+- id: conclusion_001
+  category: Generic positive conclusions
+  severity: medium
+  weight: 2
+  pattern_type: phrase
+  patterns:
+    - "holds great promise"
+    - "offers valuable insights"
+    - "has important implications"
+  explanation: "This conclusion wording may be generic unless tied to a specific finding."
+  reviewer_note: "Check whether the conclusion names concrete implications."
+
+- id: future_outlook_001
+  category: Formulaic challenges and future outlook phrasing
+  severity: medium
+  weight: 2
+  pattern_type: phrase
+  patterns:
+    - "challenges and opportunities"
+    - "future research should explore"
+    - "as the field continues to evolve"
+  explanation: "Formulaic future-looking phrasing may indicate generic academic closure."
+  reviewer_note: "Check whether the future work follows from specific limitations."
+
+- id: negative_parallel_001
+  category: Negative parallelisms
+  severity: medium
+  weight: 3
+  pattern_type: regex
+  patterns:
+    - "\\bnot only\\b.+\\bbut also\\b"
+  explanation: "Not only/but also constructions can be overused in AI-polished academic prose."
+  reviewer_note: "Check whether the contrast is necessary or artificially balanced."
+
+- id: rule_three_001
+  category: Rule-of-three overuse
+  severity: low
+  weight: 1
+  pattern_type: regex
+  patterns:
+    - "\\b\\w+,\\s+\\w+,\\s+and\\s+\\w+\\b"
+  explanation: "Lists of three can be formulaic when repeated or used for broad abstraction."
+  reviewer_note: "Check whether the list is precise and evidence-based."
+
+- id: condensed_001
+  category: Artificially condensed phrases
+  severity: medium
+  weight: 2
+  pattern_type: phrase
+  patterns:
+    - "evidence-based practice"
+    - "student-centered learning"
+    - "data-driven decision-making"
+  explanation: "Condensed compound phrases may hide vague or broad claims."
+  reviewer_note: "Check whether the phrase is defined and necessary in context."
+
+- id: where_nonlocative_001
+  category: Non-locative use of where
+  severity: low
+  weight: 1
+  pattern_type: regex
+  patterns:
+    - "\\bwhere\\s+(this|it|they|students|researchers|participants)\\b"
+  explanation: "Non-locative 'where' can signal compressed or unnatural academic phrasing."
+  reviewer_note: "Check whether 'in which' or a simpler clause would be clearer."
+
+- id: via_001
+  category: Overuse of via
+  severity: low
+  weight: 1
+  pattern_type: regex
+  patterns:
+    - "\\bvia\\b"
+  explanation: "Frequent use of 'via' can make prose sound compressed or stylized."
+  reviewer_note: "Check whether 'through', 'by', or a direct verb would be clearer."
+
+- id: beyond_001
+  category: Overuse of beyond
+  severity: low
+  weight: 1
+  pattern_type: regex
+  patterns:
+    - "\\bbeyond\\b"
+  explanation: "Frequent use of 'beyond' may signal broad framing without specific detail."
+  reviewer_note: "Check whether the contrast is concrete and necessary."
+
+- id: yield_001
+  category: Overuse of yield
+  severity: low
+  weight: 1
+  pattern_type: regex
+  patterns:
+    - "\\byield(s|ed|ing)?\\b"
+  explanation: "Frequent use of 'yield' can sound generic in academic prose."
+  reviewer_note: "Check whether a more specific verb would fit the finding."
+
+- id: title_heading_001
+  category: Title-case academic headings
+  severity: low
+  weight: 1
+  pattern_type: regex
+  case_sensitive: true
+  patterns:
+    - "(?m)^[A-Z][a-z]+(?:\\s+[A-Z][a-z]+){2,}$"
+  explanation: "Title-case headings may be a formatting signal when combined with other AI-associated patterns."
+  reviewer_note: "Check whether headings match the required style guide and document context."
+
+- id: vague_claim_001
+  category: Unsupported vague claims
+  severity: medium
+  weight: 3
+  pattern_type: phrase
+  patterns:
+    - "a growing body of research"
+    - "in recent years"
+    - "in today's society"
+    - "increasingly important"
+  explanation: "Broad unsupported framing may need clearer evidence or citation."
+  reviewer_note: "Check whether the claim is supported by specific sources."

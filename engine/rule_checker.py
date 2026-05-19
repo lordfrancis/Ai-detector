@@ -103,7 +103,7 @@ def _validate_rule(rule: Any, index: int) -> dict[str, Any]:
     if pattern_type == "regex":
         for pattern in rule["patterns"]:
             try:
-                regex.compile(pattern)
+                regex.compile(pattern, flags=_regex_flags(rule))
             except regex.error as error:
                 raise ValueError(
                     f"Rule {rule['id']} has invalid regex pattern: {pattern}"
@@ -155,7 +155,7 @@ def _match_regex_rule(
     matches: list[dict[str, Any]] = []
 
     for pattern in rule["patterns"]:
-        for match in regex.finditer(pattern, text, flags=regex.IGNORECASE):
+        for match in regex.finditer(pattern, text, flags=_regex_flags(rule)):
             matches.append(_build_match(rule, match, paragraph_index, text, base_offset))
 
     return matches
@@ -198,3 +198,9 @@ def _sentence_index_for_offset(text: str, offset: int) -> int | None:
         search_start = sentence_end
 
     return None
+
+
+def _regex_flags(rule: dict[str, Any]) -> int:
+    if rule.get("case_sensitive", False):
+        return 0
+    return regex.IGNORECASE
