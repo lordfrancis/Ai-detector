@@ -36,3 +36,17 @@ def test_check_paragraph_includes_paragraph_index() -> None:
 
     assert matches[0]["paragraph_index"] == 2
     assert matches[0]["start_offset"] == paragraph.index("underscores")
+
+
+def test_check_text_includes_paragraph_and_sentence_indexes() -> None:
+    rules = load_rules("rules/ai_patterns.yaml")
+    text = (
+        "This first paragraph is direct.\n\n"
+        "The second paragraph is clear. It plays a crucial role in the review."
+    )
+
+    matches = check_text(text, rules)
+
+    assert matches[0]["paragraph_index"] == 1
+    assert matches[0]["sentence_index"] == 1
+    assert matches[0]["start_offset"] == text.index("plays")
