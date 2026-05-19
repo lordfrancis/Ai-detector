@@ -4,6 +4,7 @@ import pandas as pd
 import streamlit as st
 
 from engine.analyzer import analyze_text
+from engine.evaluator import evaluate_datasets
 from engine.extractor import extract_text
 from engine.highlighter import highlight_matches
 from engine.report_generator import generate_json_report_text, generate_markdown_report
@@ -29,6 +30,13 @@ def main() -> None:
 
     st.info(DISCLAIMER)
     _inject_highlight_styles()
+
+    st.sidebar.header("Mode")
+    mode = st.sidebar.radio("Mode", ["Analyze Text", "Calibration Mode"], index=0)
+
+    if mode == "Calibration Mode":
+        display_calibration_mode()
+        return
 
     st.sidebar.header("Input")
     input_method = st.sidebar.radio("Input method", ["Paste text", "Upload file"], index=0)
@@ -65,6 +73,53 @@ def main() -> None:
 
         with st.expander("Preview pasted text", expanded=False):
             st.write(analysis_result["text"])
+
+
+def display_calibration_mode() -> None:
+    st.subheader("Calibration Mode")
+    st.caption("Dataset folder: datasets/")
+
+    if not st.button("Run Evaluation", type="primary"):
+        st.info("Add .txt samples to datasets/ folders, then run evaluation.")
+        return
+
+    try:
+        evaluation_result = evaluate_datasets()
+    except Exception as error:
+        st.error(f"Evaluation failed: {error}")
+        return
+
+    if evaluation_result["total_files"] == 0:
+        st.info("No .txt files found in datasets/. Add samples before evaluating.")
+
+    st.subheader("Category Metrics")
+    st.dataframe(
+        _category_metrics_dataframe(evaluation_result["category_summaries"]),
+        use_container_width=True,
+        hide_index=True,
+    )
+
+    st.subheader("Top Triggered Rules")
+    top_rules = evaluation_result["top_triggered_rules"]
+    if top_rules:
+        st.dataframe(
+            _top_rules_dataframe(top_rules),
+            use_container_width=True,
+            hide_index=True,
+        )
+    else:
+        st.info("No rule triggers found in the current dataset.")
+
+    with st.expander("File-level results", expanded=False):
+        file_results = evaluation_result["file_results"]
+        if file_results:
+            st.dataframe(
+                _file_results_dataframe(file_results),
+                use_container_width=True,
+                hide_index=True,
+            )
+        else:
+            st.info("No file-level results to show.")
 
 
 def _get_source_text(input_method: str, text: str, uploaded_file: Any) -> str:
@@ -176,6 +231,56 @@ def _matches_dataframe(matches: list[dict[str, Any]]) -> pd.DataFrame:
                 "Weight": match["weight"],
                 "Explanation": match["explanation"],
                 "Reviewer note": match["reviewer_note"],
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def _category_metrics_dataframe(category_summaries: list[dict[str, Any]]) -> pd.DataFrame:
+    rows = []
+    for summary in category_summaries:
+        rows.append(
+            {
+                "Category": summary["category"],
+                "Total files": summary["total_files"],
+                "Average risk score": summary["average_risk_score"],
+                "Low": summary["low_count"],
+                "Moderate": summary["moderate_count"],
+                "High": summary["high_count"],
+                "Very high": summary["very_high_count"],
+                "False positives": summary["false_positive_count"],
+                "False negatives": summary["false_negative_count"],
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def _top_rules_dataframe(top_rules: list[dict[str, Any]]) -> pd.DataFrame:
+    rows = []
+    for rule in top_rules:
+        rows.append(
+            {
+                "Category": rule["category"],
+                "Rule ID": rule["rule_id"],
+                "Rule category": rule["rule_category"],
+                "Count": rule["count"],
+                "% of category matches": rule["percentage_of_category_matches"],
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def _file_results_dataframe(file_results: list[dict[str, Any]]) -> pd.DataFrame:
+    rows = []
+    for result in file_results:
+        rows.append(
+            {
+                "Category": result["category"],
+                "Filename": result["filename"],
+                "Risk score": result["risk_score"],
+                "Risk level": result["risk_level"],
+                "Total matches": result["total_matches"],
+                "Word count": result["word_count"],
             }
         )
     return pd.DataFrame(rows)
