@@ -4,6 +4,7 @@ import pandas as pd
 import streamlit as st
 
 from engine.analyzer import analyze_text
+from engine.highlighter import highlight_matches
 
 
 DISCLAIMER = (
@@ -25,6 +26,7 @@ def main() -> None:
     st.caption("AI Writing Academic Review Engine")
 
     st.info(DISCLAIMER)
+    _inject_highlight_styles()
 
     st.sidebar.header("Input")
     input_method = st.sidebar.radio("Input method", ["Paste text"], index=0)
@@ -102,6 +104,12 @@ def display_analysis_result(
     else:
         st.info("No rule matches found for the current display settings.")
 
+    st.subheader("Highlighted Document")
+    st.markdown(
+        highlight_matches(analysis_result["text"], matches),
+        unsafe_allow_html=True,
+    )
+
 
 def _paragraph_scores_dataframe(paragraph_scores: list[dict[str, Any]]) -> pd.DataFrame:
     rows = []
@@ -142,6 +150,40 @@ def _one_based(index: int | None) -> int | None:
     if index is None:
         return None
     return index + 1
+
+
+def _inject_highlight_styles() -> None:
+    st.markdown(
+        """
+        <style>
+        .aware-highlighted-text {
+            border: 1px solid rgba(49, 51, 63, 0.2);
+            border-radius: 6px;
+            line-height: 1.7;
+            padding: 1rem;
+            white-space: normal;
+        }
+        .aware-highlighted-text mark {
+            border-radius: 4px;
+            color: inherit;
+            padding: 0.08rem 0.2rem;
+        }
+        .aware-highlight-low {
+            background: #e7f4ff;
+        }
+        .aware-highlight-medium {
+            background: #fff1a8;
+        }
+        .aware-highlight-high {
+            background: #ffd1a6;
+        }
+        .aware-highlight-critical {
+            background: #ffb3b3;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 if __name__ == "__main__":
