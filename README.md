@@ -10,18 +10,20 @@ This tool identifies writing patterns that may be associated with AI-generated o
 
 ## Current Status
 
-This repository is at the pasted-text analysis milestone:
+This repository has a functional local MVP:
 
 - Streamlit project scaffold
 - Pasted-text input
+- TXT, DOCX, and extractable PDF upload
 - YAML rule loading
 - Phrase and regex matching
+- Initial rule coverage across the planned category set
 - Text cleanup
 - Paragraph and sentence segmentation
 - Document and paragraph risk scoring
 - Streamlit result tables for paragraph risk and flagged matches
-
-Highlighted text, file uploads, and report exports are planned next.
+- Highlighted flagged text
+- Markdown and JSON report downloads
 
 ## Installation
 
@@ -37,6 +39,12 @@ pip install -r requirements.txt
 
 ```bash
 streamlit run app.py
+```
+
+If you are using the included virtual environment on Windows:
+
+```bash
+.\.venv\Scripts\streamlit.exe run app.py
 ```
 
 ## Supported Input Types
@@ -60,10 +68,19 @@ Current:
 
 ## Roadmap
 
+Completed:
+
 1. YAML rule loading
 2. Phrase and regex matching
 3. Document and paragraph scoring
 4. Highlighted flagged text
 5. TXT, DOCX, and PDF upload support
 6. Markdown and JSON export
-7. Unit tests and scoring calibration
+7. Unit tests for the core engine
+
+Next:
+
+1. Calibrate weights with more real samples
+2. Add optional statistical writing features
+3. Add a local report history
+4. Add a rule editor
