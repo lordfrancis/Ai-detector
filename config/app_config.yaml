@@ -1,0 +1,8 @@
+app:
+  name: AWARE Local
+  subtitle: AI Writing Academic Review Engine
+  version: 0.1.0
+
+ui:
+  default_rule_sensitivity: 3
+  show_low_severity_flags: true

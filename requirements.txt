@@ -1,0 +1,6 @@
+streamlit
+pandas
+PyYAML
+pymupdf
+python-docx
+regex

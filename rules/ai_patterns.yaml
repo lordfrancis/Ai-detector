@@ -1,0 +1,35 @@
+- id: inflated_001
+  category: Inflated significance
+  severity: high
+  weight: 4
+  pattern_type: phrase
+  patterns:
+    - "underscores the importance"
+    - "underscores the critical importance"
+    - "plays a crucial role"
+    - "pivotal role"
+    - "evolving landscape"
+  explanation: "This phrase may indicate inflated academic significance commonly associated with AI-generated academic writing."
+  reviewer_note: "Check whether the claim is specific, supported by evidence, and necessary."
+
+- id: vague_attribution_001
+  category: Vague attribution
+  severity: medium
+  weight: 3
+  pattern_type: phrase
+  patterns:
+    - "it is widely recognized"
+    - "many scholars argue"
+    - "researchers have noted"
+  explanation: "This wording may attribute a claim broadly without naming evidence or sources."
+  reviewer_note: "Check whether the claim is linked to a specific citation or body of evidence."
+
+- id: emdash_001
+  category: Em dash usage
+  severity: medium
+  weight: 3
+  pattern_type: regex
+  patterns:
+    - "—"
+  explanation: "Frequent em dash usage may be associated with AI-generated or AI-polished writing."
+  reviewer_note: "Review whether the punctuation style is natural for the writer and document type."
