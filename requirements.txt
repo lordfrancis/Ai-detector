@@ -4,3 +4,4 @@ PyYAML
 pymupdf
 python-docx
 regex
+pytest

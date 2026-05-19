@@ -1,4 +1,38 @@
-"""Tests for the rule checker.
+from engine.rule_checker import check_paragraph, check_text, load_rules
 
-Implemented after the rule engine is added.
-"""
+
+def test_load_rules_reads_yaml_rules() -> None:
+    rules = load_rules("rules/ai_patterns.yaml")
+
+    assert rules
+    assert rules[0]["id"] == "inflated_001"
+    assert rules[0]["pattern_type"] == "phrase"
+
+
+def test_check_text_finds_phrase_rule_case_insensitively() -> None:
+    rules = load_rules("rules/ai_patterns.yaml")
+    text = "The project Plays a Crucial Role in student support."
+
+    matches = check_text(text, rules)
+
+    assert any(match["matched_text"] == "Plays a Crucial Role" for match in matches)
+    assert any(match["rule_id"] == "inflated_001" for match in matches)
+
+
+def test_check_text_finds_regex_rule() -> None:
+    rules = load_rules("rules/ai_patterns.yaml")
+    text = "The claim is broad — and needs more evidence."
+
+    matches = check_text(text, rules)
+
+    assert any(match["rule_id"] == "emdash_001" for match in matches)
+
+
+def test_check_paragraph_includes_paragraph_index() -> None:
+    rules = load_rules("rules/ai_patterns.yaml")
+    paragraph = "This wording underscores the importance of evidence."
+
+    matches = check_paragraph(paragraph, paragraph_index=2, rules=rules)
+
+    assert matches[0]["paragraph_index"] == 2
+    assert matches[0]["start_offset"] == paragraph.index("underscores")

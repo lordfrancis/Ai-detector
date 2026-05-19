@@ -33,3 +33,16 @@
     - "—"
   explanation: "Frequent em dash usage may be associated with AI-generated or AI-polished writing."
   reviewer_note: "Review whether the punctuation style is natural for the writer and document type."
+
+- id: ai_vocab_001
+  category: AI-associated vocabulary
+  severity: medium
+  weight: 3
+  pattern_type: phrase
+  patterns:
+    - "highlighting the need"
+    - "robust framework"
+    - "multifaceted approach"
+    - "dynamic interplay"
+  explanation: "This phrase is commonly seen in generic AI-assisted academic prose and may need closer review."
+  reviewer_note: "Check whether the phrase communicates a precise idea or can be replaced with more specific wording."
