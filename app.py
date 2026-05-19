@@ -4,6 +4,7 @@ import pandas as pd
 import streamlit as st
 
 from engine.analyzer import analyze_text
+from engine.extractor import extract_text
 from engine.highlighter import highlight_matches
 
 
@@ -29,29 +30,32 @@ def main() -> None:
     _inject_highlight_styles()
 
     st.sidebar.header("Input")
-    input_method = st.sidebar.radio("Input method", ["Paste text"], index=0)
+    input_method = st.sidebar.radio("Input method", ["Paste text", "Upload file"], index=0)
     st.sidebar.slider("Rule sensitivity", min_value=1, max_value=5, value=3)
     show_low_severity = st.sidebar.checkbox("Show low severity flags", value=True)
 
     st.subheader("Text to Analyze")
 
     text = ""
+    uploaded_file = None
     if input_method == "Paste text":
         text = st.text_area(
             "Paste academic text",
             height=280,
             placeholder="Paste the text you want to review...",
         )
+    else:
+        uploaded_file = st.file_uploader(
+            "Upload a document",
+            type=["txt", "docx", "pdf"],
+        )
 
     analyze_clicked = st.button("Analyze", type="primary")
 
     if analyze_clicked:
-        if not text.strip():
-            st.warning("Paste text before running the analysis.")
-            return
-
         try:
-            analysis_result = analyze_text(text)
+            source_text = _get_source_text(input_method, text, uploaded_file)
+            analysis_result = analyze_text(source_text)
         except Exception as error:
             st.error(f"Analysis failed: {error}")
             return
@@ -60,6 +64,21 @@ def main() -> None:
 
         with st.expander("Preview pasted text", expanded=False):
             st.write(analysis_result["text"])
+
+
+def _get_source_text(input_method: str, text: str, uploaded_file: Any) -> str:
+    if input_method == "Paste text":
+        if not text.strip():
+            raise ValueError("Paste text before running the analysis.")
+        return text
+
+    if uploaded_file is None:
+        raise ValueError("Upload a TXT, DOCX, or PDF file before running the analysis.")
+
+    extracted_text = extract_text(uploaded_file)
+    if not extracted_text.strip():
+        raise ValueError("No text could be extracted from the uploaded file.")
+    return extracted_text
 
 
 def display_analysis_result(

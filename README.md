@@ -44,9 +44,6 @@ streamlit run app.py
 Current:
 
 - Pasted text
-
-Planned:
-
 - TXT
 - DOCX
 - PDF with extractable text
