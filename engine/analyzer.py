@@ -50,4 +50,9 @@ def analyze_text(
         "matches": matches,
         "paragraph_scores": paragraph_scores,
         "document_score": document_score,
+        "interpretation": document_score["interpretation"],
+        "reviewer_recommendation": document_score["reviewer_recommendation"],
+        "top_reasons": document_score["top_reasons"],
+        "category_summary": document_score["category_summary"],
+        "highest_risk_paragraphs": document_score["highest_risk_paragraphs"],
     }

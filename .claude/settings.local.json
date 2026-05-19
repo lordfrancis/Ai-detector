@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Program Head\\\\Desktop\\\\CMC\\\\Aware-Local-AI-Detector\" -Recurse -Directory)",
+      "Bash(Select-Object -First 20)",
+      "Bash(python -c \"import json; print\\('JSON import works'\\)\")",
+      "Bash(python -c \"from pathlib import Path; rules_file = Path\\('rules/ai_patterns.yaml'\\); print\\(f'Rules file exists: {rules_file.exists\\(\\)}'\\)\")",
+      "Bash(xargs wc -l)",
+      "Bash(grep -n \"\\\\\\\\\\\\\\\\b\\\\|word.boundary\\\\|\\(?<!\\\\\\\\|\\(?!\" engine/rule_checker.py)"
+    ]
+  }
+}

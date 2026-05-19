@@ -7,7 +7,11 @@ from engine.analyzer import analyze_text
 from engine.evaluator import evaluate_datasets
 from engine.extractor import extract_text
 from engine.highlighter import highlight_matches
-from engine.report_generator import generate_json_report_text, generate_markdown_report
+from engine.report_generator import (
+    generate_json_report_text,
+    generate_markdown_report,
+    generate_pdf_report,
+)
 
 
 DISCLAIMER = (
@@ -41,7 +45,9 @@ def main() -> None:
     st.sidebar.header("Input")
     input_method = st.sidebar.radio("Input method", ["Paste text", "Upload file"], index=0)
     st.sidebar.slider("Rule sensitivity", min_value=1, max_value=5, value=3)
-    show_low_severity = st.sidebar.checkbox("Show low severity flags", value=True)
+
+    st.sidebar.header("Displayed severities")
+    selected_severities = _selected_severities()
 
     st.subheader("Text to Analyze")
 
@@ -69,7 +75,7 @@ def main() -> None:
             st.error(f"Analysis failed: {error}")
             return
 
-        display_analysis_result(analysis_result, show_low_severity)
+        display_analysis_result(analysis_result, selected_severities)
 
         with st.expander("Preview pasted text", expanded=False):
             st.write(analysis_result["text"])
@@ -139,12 +145,14 @@ def _get_source_text(input_method: str, text: str, uploaded_file: Any) -> str:
 
 def display_analysis_result(
     analysis_result: dict[str, Any],
-    show_low_severity: bool,
+    selected_severities: set[str],
 ) -> None:
     document_score = analysis_result["document_score"]
-    matches = analysis_result["matches"]
-    if not show_low_severity:
-        matches = [match for match in matches if match["severity"] != "low"]
+    matches = [
+        match
+        for match in analysis_result["matches"]
+        if str(match["severity"]).lower() in selected_severities
+    ]
 
     st.subheader("Overall Result")
     score_columns = st.columns(4)
@@ -161,6 +169,46 @@ def display_analysis_result(
             "Top categories: "
             + ", ".join(document_score["top_5_rule_categories"])
         )
+
+    st.subheader("Result Interpretation")
+    st.write(analysis_result["interpretation"])
+
+    st.subheader("Reviewer Recommendation")
+    st.write(analysis_result["reviewer_recommendation"])
+
+    st.subheader("Top Reasons for This Score")
+    if analysis_result["top_reasons"]:
+        st.dataframe(
+            _top_reasons_dataframe(analysis_result["top_reasons"]),
+            use_container_width=True,
+            hide_index=True,
+        )
+    else:
+        st.info("No triggered categories found.")
+
+    st.subheader("Highest-Risk Paragraphs")
+    if analysis_result["highest_risk_paragraphs"]:
+        st.dataframe(
+            _highest_risk_paragraphs_dataframe(
+                analysis_result["highest_risk_paragraphs"]
+            ),
+            use_container_width=True,
+            hide_index=True,
+        )
+    else:
+        st.info("No paragraph-level risk detected.")
+
+    st.subheader("Category Summary")
+    if analysis_result["category_summary"]:
+        st.dataframe(
+            _single_document_category_summary_dataframe(
+                analysis_result["category_summary"]
+            ),
+            use_container_width=True,
+            hide_index=True,
+        )
+    else:
+        st.info("No category-level matches found.")
 
     st.subheader("Paragraph Risk")
     st.dataframe(
@@ -186,7 +234,7 @@ def display_analysis_result(
     )
 
     st.subheader("Export Report")
-    export_columns = st.columns(2)
+    export_columns = st.columns(3)
     export_columns[0].download_button(
         "Download Markdown",
         data=generate_markdown_report(analysis_result),
@@ -194,11 +242,29 @@ def display_analysis_result(
         mime="text/markdown",
     )
     export_columns[1].download_button(
+        "Download PDF",
+        data=generate_pdf_report(analysis_result),
+        file_name="aware-local-report.pdf",
+        mime="application/pdf",
+    )
+    export_columns[2].download_button(
         "Download JSON",
         data=generate_json_report_text(analysis_result),
         file_name="aware-local-result.json",
         mime="application/json",
     )
+
+
+def _selected_severities() -> set[str]:
+    selected = set()
+    for severity in ("low", "medium", "high", "critical"):
+        if st.sidebar.checkbox(
+            f"Show {severity} severity flags",
+            value=True,
+            key=f"show_{severity}_severity",
+        ):
+            selected.add(severity)
+    return selected
 
 
 def _paragraph_scores_dataframe(paragraph_scores: list[dict[str, Any]]) -> pd.DataFrame:
@@ -213,6 +279,59 @@ def _paragraph_scores_dataframe(paragraph_scores: list[dict[str, Any]]) -> pd.Da
                 "Matches": score["match_count"],
                 "Weight": score["total_weight"],
                 "Top categories": ", ".join(score["top_categories"]),
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def _top_reasons_dataframe(top_reasons: list[dict[str, Any]]) -> pd.DataFrame:
+    rows = []
+    for reason in top_reasons:
+        rows.append(
+            {
+                "Category": reason["category"],
+                "Matches": reason["match_count"],
+                "Weight": reason["total_weight"],
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def _highest_risk_paragraphs_dataframe(
+    paragraph_scores: list[dict[str, Any]],
+) -> pd.DataFrame:
+    rows = []
+    for score in paragraph_scores:
+        rows.append(
+            {
+                "Paragraph": score["paragraph_number"],
+                "Risk score": score["risk_score"],
+                "Risk level": score["risk_level"],
+                "Words": score["word_count"],
+                "Matches": score["match_count"],
+                "Weight": score["total_weight"],
+                "Top categories": ", ".join(score["top_categories"]),
+                "Excerpt": score["excerpt"],
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def _single_document_category_summary_dataframe(
+    category_summary: list[dict[str, Any]],
+) -> pd.DataFrame:
+    rows = []
+    for summary in category_summary:
+        severity_distribution = summary["severity_distribution"]
+        rows.append(
+            {
+                "Category": summary["category"],
+                "Matches": summary["match_count"],
+                "Weight": summary["total_weight"],
+                "Low": severity_distribution["low"],
+                "Medium": severity_distribution["medium"],
+                "High": severity_distribution["high"],
+                "Critical": severity_distribution["critical"],
             }
         )
     return pd.DataFrame(rows)

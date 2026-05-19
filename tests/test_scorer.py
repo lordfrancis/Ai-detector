@@ -57,7 +57,13 @@ def test_score_document_summarizes_paragraph_scores() -> None:
             "top_categories": ["Inflated significance"],
         },
     ]
-    matches = [{"category": "Inflated significance"}]
+    matches = [
+        {
+            "category": "Inflated significance",
+            "severity": "high",
+            "weight": 4,
+        }
+    ]
 
     score = score_document(text, paragraph_scores, matches)
 
@@ -65,3 +71,66 @@ def test_score_document_summarizes_paragraph_scores() -> None:
     assert score["total_weight"] == 4
     assert score["top_5_rule_categories"] == ["Inflated significance"]
     assert score["highest_risk_paragraphs"][0]["paragraph_number"] == 2
+    assert score["interpretation"]
+    assert score["reviewer_recommendation"]
+    assert score["top_reasons"][0]["match_count"] == 1
+    assert score["category_summary"][0]["severity_distribution"]["high"] == 1
+
+
+def test_score_document_orders_categories_by_frequency_then_weight() -> None:
+    paragraph_scores = [
+        {
+            "paragraph_number": 1,
+            "word_count": 20,
+            "match_count": 4,
+            "total_weight": 9,
+            "risk_score": 100,
+            "risk_level": "Very high",
+            "top_categories": ["Repeated", "Weighted"],
+            "excerpt": "Example paragraph.",
+        }
+    ]
+    matches = [
+        {"category": "Weighted", "severity": "critical", "weight": 6},
+        {"category": "Repeated", "severity": "low", "weight": 1},
+        {"category": "Repeated", "severity": "medium", "weight": 2},
+    ]
+
+    score = score_document("Example paragraph.", paragraph_scores, matches)
+
+    assert score["top_5_rule_categories"] == ["Repeated", "Weighted"]
+    assert score["category_summary"][0]["category"] == "Repeated"
+    assert score["category_summary"][0]["match_count"] == 2
+    assert score["category_summary"][0]["total_weight"] == 3
+    assert score["category_summary"][0]["severity_distribution"] == {
+        "low": 1,
+        "medium": 1,
+        "high": 0,
+        "critical": 0,
+    }
+
+
+def test_score_document_keeps_top_five_positive_risk_paragraphs() -> None:
+    paragraph_scores = [
+        {
+            "paragraph_number": number,
+            "word_count": 10,
+            "match_count": 1,
+            "total_weight": number,
+            "risk_score": float(number),
+            "risk_level": "Low",
+            "top_categories": [],
+            "excerpt": f"Paragraph {number}",
+        }
+        for number in range(1, 7)
+    ]
+
+    score = score_document("Example text.", paragraph_scores, [])
+
+    assert [row["paragraph_number"] for row in score["highest_risk_paragraphs"]] == [
+        6,
+        5,
+        4,
+        3,
+        2,
+    ]

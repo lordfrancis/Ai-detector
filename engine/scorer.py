@@ -2,10 +2,51 @@
 
 from __future__ import annotations
 
-from collections import Counter
+from collections import Counter, defaultdict
 from typing import Any
 
 import regex
+
+
+SEVERITY_LEVELS = ("low", "medium", "high", "critical")
+
+INTERPRETATION_BY_RISK_LEVEL = {
+    "Low": (
+        "The document shows few or no rule-based AI-writing signals. This does "
+        "not prove human authorship, but the current pattern density is low."
+    ),
+    "Moderate": (
+        "The document shows some repeated AI-associated writing signals. Review "
+        "the flagged passages in context before drawing any conclusion."
+    ),
+    "High": (
+        "The document shows multiple or higher-weight AI-associated writing "
+        "signals. A closer human review is recommended."
+    ),
+    "Very high": (
+        "The document shows dense or high-weight AI-associated writing signals. "
+        "Treat this as a priority for human review, not as automatic proof of AI use."
+    ),
+}
+
+RECOMMENDATION_BY_RISK_LEVEL = {
+    "Low": (
+        "No special action is suggested from this score alone. Keep normal review "
+        "practices and consider the student's drafting context if concerns remain."
+    ),
+    "Moderate": (
+        "Review the top flagged categories and ask for normal supporting evidence "
+        "such as drafts, notes, or version history if the result conflicts with expectations."
+    ),
+    "High": (
+        "Prioritize the highest-risk paragraphs for review and compare them with "
+        "known student writing, drafts, version history, and an oral explanation."
+    ),
+    "Very high": (
+        "Escalate for careful human review using multiple evidence sources, including "
+        "draft history and direct discussion with the writer."
+    ),
+}
 
 
 def score_paragraph(
@@ -27,6 +68,7 @@ def score_paragraph(
         "risk_score": risk_score,
         "risk_level": get_risk_level(risk_score),
         "top_categories": [category for category, _ in categories.most_common(3)],
+        "excerpt": _excerpt(paragraph),
     }
 
 
@@ -41,28 +83,36 @@ def score_document(
     total_weight = sum(score["total_weight"] for score in paragraph_scores)
     risk_score = _normalized_risk_score(total_weight, total_word_count)
 
-    category_counts: Counter[str] = Counter()
-    if matches is not None:
-        category_counts.update(match["category"] for match in matches)
-    else:
-        for score in paragraph_scores:
-            category_counts.update(score.get("top_categories", []))
+    category_summary = _category_summary(matches or [])
+    top_reasons = category_summary[:5]
 
     highest_risk_paragraphs = sorted(
-        paragraph_scores,
-        key=lambda score: score["risk_score"],
+        [
+            score
+            for score in paragraph_scores
+            if float(score.get("risk_score", 0)) > 0
+        ],
+        key=lambda score: (
+            float(score["risk_score"]),
+            int(score["total_weight"]),
+            -int(score["paragraph_number"] or 0),
+        ),
         reverse=True,
-    )[:3]
+    )[:5]
+
+    risk_level = get_risk_level(risk_score)
 
     return {
         "overall_risk_score": risk_score,
-        "overall_risk_level": get_risk_level(risk_score),
+        "overall_risk_level": risk_level,
         "total_word_count": total_word_count,
         "total_matches": total_matches,
         "total_weight": total_weight,
-        "top_5_rule_categories": [
-            category for category, _ in category_counts.most_common(5)
-        ],
+        "interpretation": INTERPRETATION_BY_RISK_LEVEL[risk_level],
+        "reviewer_recommendation": RECOMMENDATION_BY_RISK_LEVEL[risk_level],
+        "top_reasons": top_reasons,
+        "category_summary": category_summary,
+        "top_5_rule_categories": [reason["category"] for reason in top_reasons],
         "highest_risk_paragraphs": highest_risk_paragraphs,
     }
 
@@ -88,6 +138,50 @@ def _normalized_risk_score(total_weight: int, word_count: int) -> float:
 
     normalized_score = (total_weight / word_count) * 1000
     return round(min(100.0, normalized_score * 5), 2)
+
+
+def _category_summary(matches: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    category_counts: Counter[str] = Counter()
+    category_weights: Counter[str] = Counter()
+    severity_counts: dict[str, Counter[str]] = defaultdict(Counter)
+
+    for match in matches:
+        category = str(match["category"])
+        severity = str(match.get("severity", "")).lower()
+        category_counts[category] += 1
+        category_weights[category] += int(match.get("weight", 0))
+        if severity in SEVERITY_LEVELS:
+            severity_counts[category][severity] += 1
+
+    rows = []
+    for category, match_count in category_counts.items():
+        rows.append(
+            {
+                "category": category,
+                "match_count": match_count,
+                "total_weight": category_weights[category],
+                "severity_distribution": {
+                    severity: severity_counts[category][severity]
+                    for severity in SEVERITY_LEVELS
+                },
+            }
+        )
+
+    return sorted(
+        rows,
+        key=lambda row: (
+            -int(row["match_count"]),
+            -int(row["total_weight"]),
+            str(row["category"]).lower(),
+        ),
+    )
+
+
+def _excerpt(paragraph: str, max_length: int = 180) -> str:
+    excerpt = regex.sub(r"\s+", " ", paragraph).strip()
+    if len(excerpt) <= max_length:
+        return excerpt
+    return excerpt[: max_length - 3].rstrip() + "..."
 
 
 def _paragraph_number(
