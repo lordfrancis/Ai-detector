@@ -10,15 +10,18 @@ This tool identifies writing patterns that may be associated with AI-generated o
 
 ## Current Status
 
-This repository is at Milestone 1 of the development plan:
+This repository is at the pasted-text analysis milestone:
 
 - Streamlit project scaffold
-- Minimal local app
 - Pasted-text input
-- Placeholder analysis flow
-- Initial folders for the future analysis engine
+- YAML rule loading
+- Phrase and regex matching
+- Text cleanup
+- Paragraph and sentence segmentation
+- Document and paragraph risk scoring
+- Streamlit result tables for paragraph risk and flagged matches
 
-The rule checker, scoring engine, highlighting, file uploads, and report exports are planned next.
+Highlighted text, file uploads, and report exports are planned next.
 
 ## Installation
 
