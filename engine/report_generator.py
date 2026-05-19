@@ -9,6 +9,8 @@ from typing import Any
 import fitz
 import regex
 
+from engine.scorer import one_based
+
 
 DISCLAIMER = (
     "This report identifies writing patterns that may be associated with "
@@ -185,8 +187,8 @@ def generate_markdown_report(analysis_result: dict[str, Any]) -> str:
         for match in analysis_result["matches"]:
             lines.append(
                 "| {paragraph} | {sentence} | {matched_text} | {category} | {severity} | {explanation} | {reviewer_note} |".format(
-                    paragraph=_one_based(match["paragraph_index"]),
-                    sentence=_one_based(match["sentence_index"]),
+                    paragraph=_display_index(match["paragraph_index"]),
+                    sentence=_display_index(match["sentence_index"]),
                     matched_text=_escape_markdown_table_text(match["matched_text"]),
                     category=_escape_markdown_table_text(match["category"]),
                     severity=match["severity"],
@@ -277,10 +279,11 @@ def save_report(content: str, filename: str) -> str:
     return str(output_path)
 
 
-def _one_based(index: int | None) -> int | str:
-    if index is None:
+def _display_index(index: int | None) -> int | str:
+    display_index = one_based(index)
+    if display_index is None:
         return ""
-    return index + 1
+    return display_index
 
 
 def _escape_markdown_table_text(text: str) -> str:

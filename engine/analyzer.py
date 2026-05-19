@@ -17,6 +17,7 @@ DEFAULT_RULE_PATH = Path("rules/ai_patterns.yaml")
 def analyze_text(
     text: str,
     rule_path: str | Path = DEFAULT_RULE_PATH,
+    sensitivity: int = 3,
 ) -> dict[str, Any]:
     """Clean text, run rule checks, and return document-level analysis."""
     cleaned_text = clean_text(text)
@@ -34,6 +35,7 @@ def analyze_text(
                 paragraph=paragraph,
                 matches=paragraph_matches,
                 paragraph_index=paragraph_index,
+                sensitivity=sensitivity,
             )
         )
 
@@ -41,6 +43,7 @@ def analyze_text(
         text=cleaned_text,
         paragraph_scores=paragraph_scores,
         matches=matches,
+        sensitivity=sensitivity,
     )
 
     return {

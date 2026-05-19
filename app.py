@@ -4,6 +4,7 @@ import pandas as pd
 import streamlit as st
 
 from engine.analyzer import analyze_text
+from engine.config import get_scoring_config
 from engine.evaluator import evaluate_datasets
 from engine.extractor import extract_text
 from engine.highlighter import highlight_matches
@@ -12,6 +13,7 @@ from engine.report_generator import (
     generate_markdown_report,
     generate_pdf_report,
 )
+from engine.scorer import one_based, sensitivity_multiplier
 
 
 DISCLAIMER = (
@@ -33,6 +35,7 @@ def main() -> None:
     st.caption("AI Writing Academic Review Engine")
 
     st.info(DISCLAIMER)
+    st.caption(_scoring_config_caption())
     _inject_highlight_styles()
 
     st.sidebar.header("Mode")
@@ -44,7 +47,16 @@ def main() -> None:
 
     st.sidebar.header("Input")
     input_method = st.sidebar.radio("Input method", ["Paste text", "Upload file"], index=0)
-    st.sidebar.slider("Rule sensitivity", min_value=1, max_value=5, value=3)
+    sensitivity = st.sidebar.slider(
+        "Rule sensitivity",
+        min_value=1,
+        max_value=5,
+        value=3,
+        key="rule_sensitivity",
+    )
+    st.sidebar.caption(
+        f"{sensitivity} -> {_sensitivity_multiplier(sensitivity):.2f}x weight"
+    )
 
     st.sidebar.header("Displayed severities")
     selected_severities = _selected_severities()
@@ -70,7 +82,7 @@ def main() -> None:
     if analyze_clicked:
         try:
             source_text = _get_source_text(input_method, text, uploaded_file)
-            analysis_result = analyze_text(source_text)
+            analysis_result = analyze_text(source_text, sensitivity=sensitivity)
         except Exception as error:
             st.error(f"Analysis failed: {error}")
             return
@@ -267,6 +279,23 @@ def _selected_severities() -> set[str]:
     return selected
 
 
+def _scoring_config_caption() -> str:
+    config = get_scoring_config()
+    risk_bands = config["risk_bands"]
+    calibration = config["calibration"]
+    return (
+        "Risk bands: "
+        f"<={risk_bands['low_max']} Low / "
+        f"<={risk_bands['moderate_max']} Moderate / "
+        f"<={risk_bands['high_max']} High. "
+        f"Calibration multiplier: {calibration['multiplier']}x."
+    )
+
+
+def _sensitivity_multiplier(sensitivity: int) -> float:
+    return sensitivity_multiplier(sensitivity)
+
+
 def _paragraph_scores_dataframe(paragraph_scores: list[dict[str, Any]]) -> pd.DataFrame:
     rows = []
     for score in paragraph_scores:
@@ -342,8 +371,8 @@ def _matches_dataframe(matches: list[dict[str, Any]]) -> pd.DataFrame:
     for match in matches:
         rows.append(
             {
-                "Paragraph": _one_based(match["paragraph_index"]),
-                "Sentence": _one_based(match["sentence_index"]),
+                "Paragraph": one_based(match["paragraph_index"]),
+                "Sentence": one_based(match["sentence_index"]),
                 "Matched text": match["matched_text"],
                 "Category": match["category"],
                 "Severity": match["severity"],
@@ -404,11 +433,6 @@ def _file_results_dataframe(file_results: list[dict[str, Any]]) -> pd.DataFrame:
         )
     return pd.DataFrame(rows)
 
-
-def _one_based(index: int | None) -> int | None:
-    if index is None:
-        return None
-    return index + 1
 
 
 def _inject_highlight_styles() -> None:

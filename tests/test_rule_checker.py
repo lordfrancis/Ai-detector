@@ -28,11 +28,42 @@ def test_check_text_finds_phrase_rule_case_insensitively() -> None:
 
 def test_check_text_finds_regex_rule() -> None:
     rules = load_rules("rules/ai_patterns.yaml")
-    text = "The claim is broad — and needs more evidence."
+    text = "The claim is broad — polished — balanced — and needs evidence."
 
     matches = check_text(text, rules)
 
     assert any(match["rule_id"] == "emdash_001" for match in matches)
+
+
+def test_emdash_rule_ignores_single_em_dash() -> None:
+    rules = load_rules("rules/ai_patterns.yaml")
+    text = "The claim is broad — and needs more evidence."
+
+    matches = check_text(text, rules)
+
+    assert not any(match["rule_id"] == "emdash_001" for match in matches)
+
+
+def test_load_rules_defaults_weight_from_severity(tmp_path) -> None:
+    rule_path = tmp_path / "rules.yaml"
+    rule_path.write_text(
+        "\n".join(
+            [
+                "- id: default_weight_001",
+                "  category: Default weight",
+                "  severity: high",
+                "  pattern_type: phrase",
+                "  patterns:",
+                '    - "default weight"',
+                '  explanation: "Uses configured severity weight."',
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    rules = load_rules(str(rule_path))
+
+    assert rules[0]["weight"] == 5
 
 
 def test_check_paragraph_includes_paragraph_index() -> None:

@@ -20,3 +20,14 @@ def test_analyze_text_cleans_whitespace_before_analysis() -> None:
 
     assert result["text"] == "This plays a crucial role."
     assert result["document_score"]["total_matches"] == 1
+
+
+def test_analyze_text_threads_sensitivity_into_scores() -> None:
+    text = "This plays a crucial role. " + ("plain wording " * 120)
+    low_result = analyze_text(text, sensitivity=1)
+    high_result = analyze_text(text, sensitivity=5)
+
+    assert (
+        low_result["document_score"]["overall_risk_score"]
+        < high_result["document_score"]["overall_risk_score"]
+    )

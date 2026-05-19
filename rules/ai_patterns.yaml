@@ -1,7 +1,7 @@
 - id: inflated_001
   category: Inflated significance
   severity: high
-  weight: 4
+  weight: 5
   pattern_type: phrase
   patterns:
     - "underscores the importance"
@@ -30,7 +30,7 @@
   weight: 3
   pattern_type: regex
   patterns:
-    - "—"
+    - "—[^—\\n]{1,200}—[^—\\n]{1,200}—"
   explanation: "Frequent em dash usage may be associated with AI-generated or AI-polished writing."
   reviewer_note: "Review whether the punctuation style is natural for the writer and document type."
 
@@ -100,7 +100,7 @@
 - id: causal_001
   category: Overly assertive causal claims
   severity: high
-  weight: 4
+  weight: 5
   pattern_type: phrase
   patterns:
     - "directly leads to"

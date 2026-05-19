@@ -7,8 +7,18 @@ from typing import Any
 
 import regex
 
+from engine.config import get_scoring_config
+
 
 SEVERITY_LEVELS = ("low", "medium", "high", "critical")
+DEFAULT_SENSITIVITY = 3
+SENSITIVITY_MULTIPLIERS = {
+    1: 0.50,
+    2: 0.75,
+    3: 1.00,
+    4: 1.33,
+    5: 5 / 3,
+}
 
 INTERPRETATION_BY_RISK_LEVEL = {
     "Low": (
@@ -53,11 +63,12 @@ def score_paragraph(
     paragraph: str,
     matches: list[dict[str, Any]],
     paragraph_index: int | None = None,
+    sensitivity: int = DEFAULT_SENSITIVITY,
 ) -> dict[str, Any]:
     """Compute paragraph-level risk from rule matches."""
     word_count = _count_words(paragraph)
     total_weight = sum(int(match.get("weight", 0)) for match in matches)
-    risk_score = _normalized_risk_score(total_weight, word_count)
+    risk_score = _normalized_risk_score(total_weight, word_count, sensitivity)
     categories = Counter(match["category"] for match in matches)
 
     return {
@@ -76,12 +87,13 @@ def score_document(
     text: str,
     paragraph_scores: list[dict[str, Any]],
     matches: list[dict[str, Any]] | None = None,
+    sensitivity: int = DEFAULT_SENSITIVITY,
 ) -> dict[str, Any]:
     """Compute document-level risk from paragraph scores and optional matches."""
     total_word_count = _count_words(text)
     total_matches = sum(score["match_count"] for score in paragraph_scores)
     total_weight = sum(score["total_weight"] for score in paragraph_scores)
-    risk_score = _normalized_risk_score(total_weight, total_word_count)
+    risk_score = _normalized_risk_score(total_weight, total_word_count, sensitivity)
 
     category_summary = _category_summary(matches or [])
     top_reasons = category_summary[:5]
@@ -108,6 +120,8 @@ def score_document(
         "total_word_count": total_word_count,
         "total_matches": total_matches,
         "total_weight": total_weight,
+        "sensitivity": sensitivity,
+        "sensitivity_multiplier": sensitivity_multiplier(sensitivity),
         "interpretation": INTERPRETATION_BY_RISK_LEVEL[risk_level],
         "reviewer_recommendation": RECOMMENDATION_BY_RISK_LEVEL[risk_level],
         "top_reasons": top_reasons,
@@ -119,25 +133,44 @@ def score_document(
 
 def get_risk_level(score: float) -> str:
     """Map a 0-100 risk score to a readable risk level."""
-    if score <= 20:
+    risk_bands = get_scoring_config()["risk_bands"]
+    if score <= risk_bands["low_max"]:
         return "Low"
-    if score <= 50:
+    if score <= risk_bands["moderate_max"]:
         return "Moderate"
-    if score <= 80:
+    if score <= risk_bands["high_max"]:
         return "High"
     return "Very high"
+
+
+def one_based(index: int | None) -> int | None:
+    """Convert a zero-based index to one-based display form."""
+    if index is None:
+        return None
+    return index + 1
+
+
+def sensitivity_multiplier(sensitivity: int) -> float:
+    """Map UI sensitivity level to the weight multiplier used in scoring."""
+    return SENSITIVITY_MULTIPLIERS[max(1, min(5, int(sensitivity)))]
 
 
 def _count_words(text: str) -> int:
     return len(regex.findall(r"\b[\p{L}\p{N}']+\b", text))
 
 
-def _normalized_risk_score(total_weight: int, word_count: int) -> float:
+def _normalized_risk_score(
+    total_weight: int,
+    word_count: int,
+    sensitivity: int = DEFAULT_SENSITIVITY,
+) -> float:
     if word_count <= 0:
         return 0.0
 
-    normalized_score = (total_weight / word_count) * 1000
-    return round(min(100.0, normalized_score * 5), 2)
+    calibration_multiplier = float(get_scoring_config()["calibration"]["multiplier"])
+    adjusted_weight = total_weight * sensitivity_multiplier(sensitivity)
+    normalized_score = (adjusted_weight / word_count) * 1000
+    return round(min(100.0, normalized_score * calibration_multiplier), 2)
 
 
 def _category_summary(matches: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -194,4 +227,4 @@ def _paragraph_number(
     if paragraph_index is None:
         return None
 
-    return int(paragraph_index) + 1
+    return one_based(int(paragraph_index))

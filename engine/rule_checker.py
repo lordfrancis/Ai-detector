@@ -8,6 +8,7 @@ from typing import Any
 import regex
 import yaml
 
+from engine.config import get_scoring_config
 from engine.segmenter import split_paragraphs, split_sentences
 
 
@@ -73,7 +74,6 @@ def _validate_rule(rule: Any, index: int) -> dict[str, Any]:
         "id",
         "category",
         "severity",
-        "weight",
         "pattern_type",
         "patterns",
         "explanation",
@@ -95,10 +95,7 @@ def _validate_rule(rule: Any, index: int) -> dict[str, Any]:
     if not all(isinstance(pattern, str) for pattern in rule["patterns"]):
         raise ValueError(f"Rule {rule['id']} patterns must all be strings.")
 
-    try:
-        rule["weight"] = int(rule["weight"])
-    except (TypeError, ValueError) as error:
-        raise ValueError(f"Rule {rule['id']} weight must be an integer.") from error
+    rule["weight"] = _rule_weight(rule)
 
     if pattern_type == "regex":
         for pattern in rule["patterns"]:
@@ -110,6 +107,22 @@ def _validate_rule(rule: Any, index: int) -> dict[str, Any]:
                 ) from error
 
     return rule
+
+
+def _rule_weight(rule: dict[str, Any]) -> int:
+    if "weight" in rule:
+        try:
+            return int(rule["weight"])
+        except (TypeError, ValueError) as error:
+            raise ValueError(f"Rule {rule['id']} weight must be an integer.") from error
+
+    severity_weights = get_scoring_config()["severity_weights"]
+    severity = str(rule["severity"]).lower()
+    if severity not in severity_weights:
+        raise ValueError(
+            f"Rule {rule['id']} has no weight and uses unknown severity: {severity}"
+        )
+    return int(severity_weights[severity])
 
 
 def _check_text_segment(

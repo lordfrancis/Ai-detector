@@ -1,4 +1,12 @@
-from engine.scorer import get_risk_level, score_document, score_paragraph
+from engine.config import clear_scoring_config_cache
+from engine.scorer import (
+    _normalized_risk_score,
+    get_risk_level,
+    one_based,
+    score_document,
+    score_paragraph,
+    sensitivity_multiplier,
+)
 
 
 def test_get_risk_level_boundaries() -> None:
@@ -6,6 +14,58 @@ def test_get_risk_level_boundaries() -> None:
     assert get_risk_level(21) == "Moderate"
     assert get_risk_level(51) == "High"
     assert get_risk_level(81) == "Very high"
+
+
+def test_scoring_uses_runtime_config(tmp_path, monkeypatch) -> None:
+    config_path = tmp_path / "scoring_config.yaml"
+    config_path.write_text(
+        "\n".join(
+            [
+                "risk_bands:",
+                "  low_max: 10",
+                "  moderate_max: 30",
+                "  high_max: 60",
+                "calibration:",
+                "  multiplier: 10",
+                "severity_weights:",
+                "  low: 1",
+                "  medium: 3",
+                "  high: 5",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("AWARE_SCORING_CONFIG", str(config_path))
+    clear_scoring_config_cache()
+
+    try:
+        assert get_risk_level(11) == "Moderate"
+        assert _normalized_risk_score(1, 100, sensitivity=3) == 100.0
+    finally:
+        monkeypatch.delenv("AWARE_SCORING_CONFIG", raising=False)
+        clear_scoring_config_cache()
+
+
+def test_score_paragraph_applies_sensitivity_multiplier() -> None:
+    paragraph = "word " * 100
+    matches = [{"paragraph_index": 0, "category": "Test", "weight": 1}]
+
+    low_score = score_paragraph(paragraph, matches, paragraph_index=0, sensitivity=1)
+    default_score = score_paragraph(paragraph, matches, paragraph_index=0, sensitivity=3)
+    high_score = score_paragraph(paragraph, matches, paragraph_index=0, sensitivity=5)
+
+    assert low_score["risk_score"] < default_score["risk_score"] < high_score["risk_score"]
+
+
+def test_sensitivity_multiplier_matches_ui_scale() -> None:
+    assert sensitivity_multiplier(1) == 0.50
+    assert sensitivity_multiplier(3) == 1.00
+    assert round(sensitivity_multiplier(5), 2) == 1.67
+
+
+def test_one_based_handles_none_and_zero_based_indexes() -> None:
+    assert one_based(None) is None
+    assert one_based(0) == 1
 
 
 def test_score_paragraph_counts_matches_and_weight() -> None:
