@@ -6,6 +6,7 @@ import streamlit as st
 from engine.analyzer import analyze_text
 from engine.extractor import extract_text
 from engine.highlighter import highlight_matches
+from engine.report_generator import generate_json_report_text, generate_markdown_report
 
 
 DISCLAIMER = (
@@ -127,6 +128,21 @@ def display_analysis_result(
     st.markdown(
         highlight_matches(analysis_result["text"], matches),
         unsafe_allow_html=True,
+    )
+
+    st.subheader("Export Report")
+    export_columns = st.columns(2)
+    export_columns[0].download_button(
+        "Download Markdown",
+        data=generate_markdown_report(analysis_result),
+        file_name="aware-local-report.md",
+        mime="text/markdown",
+    )
+    export_columns[1].download_button(
+        "Download JSON",
+        data=generate_json_report_text(analysis_result),
+        file_name="aware-local-result.json",
+        mime="application/json",
     )
 
 
